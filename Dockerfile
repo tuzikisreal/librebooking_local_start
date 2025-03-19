@@ -1,4 +1,4 @@
-ARG  PHP_VERSION
+ARG  PHP_VERSION=8.1
 FROM php:${PHP_VERSION}-apache
 
 # Install composer
@@ -37,25 +37,23 @@ RUN set -ex; \
     docker-php-ext-enable timezonedb;
 
 # Get and customize librebooking
-USER www-data
+
+USER root
+ADD app/ /var/www/html/
 RUN set -ex; \
-    curl \
-      --fail \
-      --silent \
-      --location https://api.github.com/repos/librebooking/app/tarball/${APP_GH_REF} \
-    | tar --extract --gzip --directory=/var/www/html --strip-components=1; \
     if [ -f /var/www/html/composer.json ]; then \
-      composer install --ignore-platform-req=ext-gd; \
+        composer install --ignore-platform-req=ext-gd; \
     fi; \
     sed \
-      -i /var/www/html/database_schema/create-user.sql \
-      -e "s:^DROP USER ':DROP USER IF EXISTS ':g" \
-      -e "s:booked_user:schedule_user:g" \
-      -e "s:localhost:%:g"; \
+        -i /var/www/html/database_schema/create-user.sql \
+        -e "s:^DROP USER ':DROP USER IF EXISTS ':g" \
+        -e "s:booked_user:schedule_user:g" \
+        -e "s:localhost:%:g"; \
     if ! [ -d /var/www/html/tpl_c ]; then \
-      mkdir /var/www/html/tpl_c; \
-    fi
-
+        mkdir /var/www/html/tpl_c; \
+        chown www-data:www-data /var/www/html/tpl_c; \
+        chmod 775 /var/www/html/tpl_c; \
+    fi  
 # Final customization
 USER root
 RUN set -ex; \
